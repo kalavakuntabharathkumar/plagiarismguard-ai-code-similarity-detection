@@ -1,0 +1,51 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: plagiarismguard-api
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: plagiarismguard-api
+  template:
+    metadata:
+      labels:
+        app: plagiarismguard-api
+    spec:
+      containers:
+        - name: api
+          image: your-registry/plagiarismguard:latest
+          ports:
+            - containerPort: 8000
+          env:
+            - name: MYSQL_HOST
+              value: mysql
+            - name: RABBITMQ_URL
+              valueFrom:
+                secretKeyRef:
+                  name: plagiarismguard-secrets
+                  key: rabbitmq-url
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: plagiarismguard-api
+spec:
+  selector:
+    app: plagiarismguard-api
+  ports:
+    - port: 80
+      targetPort: 8000
